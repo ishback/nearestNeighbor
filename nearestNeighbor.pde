@@ -1,7 +1,6 @@
 PImage sample;
 PImage[] modelImages;
-String[] modelFilenames;
-
+ArrayList<String> modelFilenames;
 ArrayList<PVector> sampleWhitePix;
 ArrayList<PVector> modelWhitePix;
 ArrayList<ArrayList<PVector>> models;
@@ -14,7 +13,7 @@ color white = color(255);
 PFont f;
 int numModels;
 int nearest;
-
+boolean newImage = true;
 
 void setup() {
   background(0);
@@ -23,20 +22,40 @@ void setup() {
   textFont(f);  
   // load all the model images
   java.io.File modelFolder = new java.io.File(dataPath("models"));
-  modelFilenames = modelFolder.list();
-  numModels = modelFilenames.length;
+  String[] modelFilenamesTemp = modelFolder.list();
+  modelFilenames = new ArrayList<String>();
+  for (int i = 0; i < modelFilenamesTemp.length; i++) {
+    if (!modelFilenamesTemp[i].startsWith(".")){
+      modelFilenames.add(modelFilenamesTemp[i]);
+    }
+  }
+  numModels = modelFilenames.size();
   modelImages = new PImage[numModels];
   models = new ArrayList<ArrayList<PVector>>();
   distances = new FloatList();
-  size(imageW * 7, imageH * 3);
+  size(imageW * 6, imageH * 3);
+  
+}
+
+void draw(){
+  
+  if (newImage){
+    background(0);
+    recalculate();
+    newImage = false;
+  }
+}
+
+void recalculate(){
   sample = loadImage("sample.jpg");
+  sample.resize(180, 200);
   sample.filter(THRESHOLD);
   sampleWhitePix = new ArrayList<PVector>();
   storeWhitePixels(sample, sampleWhitePix);
   displayPixels(sampleWhitePix, 0, white);
   for (int i = 0; i < numModels; i++) {
-    println("models/" + modelFilenames[i]);
-    modelImages[i] = loadImage("models/" + modelFilenames[i]);
+    println("models/" + modelFilenames.get(i));
+    modelImages[i] = loadImage("models/" + modelFilenames.get(i));
     modelImages[i].filter(THRESHOLD);
     models.add(new ArrayList<PVector>());
     storeWhitePixels(modelImages[i], models.get(i));
@@ -51,6 +70,21 @@ void setup() {
   }
   println(numModels + " model Images");
   drawRectNearest();
+  dataViz();
+}
+
+void dataViz(){
+  pushMatrix();
+  translate(550, 500);
+  stroke(40);
+  line(0, 0, 500, 0);
+  for (int i=0; i < distances.size(); i++){
+    noStroke();
+    fill(0, 200, 220);
+    ellipse(distances.get(i)/200, 0, 5, 5);
+  
+  }
+  popMatrix();
 }
 
 void drawRectNearest(){
@@ -74,8 +108,8 @@ void displayPixels(ArrayList<PVector> arrayModel, int pos, color c){
 float nn (ArrayList<PVector> arraySample, ArrayList<PVector> arrayModel, int pos){
   float totalDist = 0;
   PVector closest = new PVector(0,0);
-  int posX = pos%imageW;
-  int posY = pos/imageW;
+  int posX = pos%(width/imageW);
+  int posY = pos/(width/imageW);
   for (int i = 0 ; i < arraySample.size() ; i++) {
     float dist = 100000000; // set to large number initially. no need to store.
     PVector s = arraySample.get(i);
@@ -110,5 +144,11 @@ void storeWhitePixels(PImage image, ArrayList<PVector> array){
     if (red(image.pixels[i]) == 255){ //the pixels is white
       array.add(new PVector(i%image.width, i/image.width));
     }
+  }
+}
+
+void keyPressed() {
+  if (key == 'R' || key == 'r') {
+    newImage = true;
   }
 }
