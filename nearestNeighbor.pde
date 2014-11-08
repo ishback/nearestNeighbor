@@ -1,48 +1,55 @@
 PImage sample;
-PImage model1;
-PImage model2;
+PImage[] modelImages;
+String[] modelFilenames;
+
 ArrayList<PVector> sampleWhitePix;
-ArrayList<PVector> model1WhitePix;
-ArrayList<PVector> model2WhitePix;
+ArrayList<PVector> modelWhitePix;
+ArrayList<ArrayList<PVector>> models;
+FloatList distances;
+
 int imageW = 180;
 int imageH = 200;
 color ghost = color(0, 255, 0, 100);
 color white = color(255);
 PFont f;
+int numModels;
+
 
 void setup() {
   background(0);
   smooth();
   f = loadFont( "Inconsolata-Regular-14.vlw" );
-  textFont(f);
+  textFont(f);  
+  // load all the model images
+  java.io.File modelFolder = new java.io.File(dataPath("models"));
+  modelFilenames = modelFolder.list();
+  numModels = modelFilenames.length;
+  modelImages = new PImage[numModels];
+  models = new ArrayList<ArrayList<PVector>>();
+  distances = new FloatList();
+  size(imageW * 3, imageW * numModels);
+  pushMatrix();
+  scale(0.7);
   sample = loadImage("sample.jpg");
-  model1 = loadImage("model1.jpg");
-  model2 = loadImage("model2.jpg");
-  size(sample.width * 3, sample.height*2);
   sample.filter(THRESHOLD);
-  model1.filter(THRESHOLD);
-  model2.filter(THRESHOLD);
-  sampleWhitePix = new ArrayList<PVector>();  // Create an empty ArrayList
-  model1WhitePix = new ArrayList<PVector>();
-  model2WhitePix = new ArrayList<PVector>();
-  
-  // we store the white pixels in a new array
+  sampleWhitePix = new ArrayList<PVector>();
   storeWhitePixels(sample, sampleWhitePix);
-  storeWhitePixels(model1, model1WhitePix);
-  storeWhitePixels(model2, model2WhitePix);
-  //image(sample, 0, 0);
-  displayPixels(sampleWhitePix, 0, 0, white);
-  displayPixels(model1WhitePix, 1, 0, white);
-  displayPixels(sampleWhitePix, 1, 0, ghost);
 
-  displayPixels(sampleWhitePix, 0, 1, white);
-  displayPixels(model2WhitePix, 1, 1, white);
-  displayPixels(sampleWhitePix, 1, 1, ghost);
+  for (int i = 0; i < numModels; i++) {
+    println("models/" + modelFilenames[i]);
+    modelImages[i] = loadImage("models/" + modelFilenames[i]);
+    modelImages[i].filter(THRESHOLD);
+    models.add(new ArrayList<PVector>());
+    storeWhitePixels(modelImages[i], models.get(i));
+    
+    displayPixels(sampleWhitePix, 0, i, white);
+    displayPixels(models.get(i), 1, i, white);
+    displayPixels(sampleWhitePix, 1, i, ghost);
+    distances.append(nn(sampleWhitePix, models.get(i), i));
+  }
+  println(numModels + " model Images");
+  popMatrix();
 
-  println("sample: " + sampleWhitePix.size());
-  println("model: " + model1WhitePix.size());
-  float totalDist0 = nn(sampleWhitePix, model1WhitePix, 0);
-  float totalDist1 = nn(sampleWhitePix, model2WhitePix, 1);
 }
 
 void displayPixels(ArrayList<PVector> arrayModel, int posX, int posY, color c){
