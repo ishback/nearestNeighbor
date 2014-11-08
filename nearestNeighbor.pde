@@ -1,59 +1,66 @@
 PImage sample;
-PImage sample1;
-PImage model;
+PImage model1;
+PImage model2;
 ArrayList<PVector> sampleWhitePix;
-ArrayList<PVector> sample1WhitePix;
-ArrayList<PVector> modelWhitePix;
+ArrayList<PVector> model1WhitePix;
+ArrayList<PVector> model2WhitePix;
+int imageW = 180;
+int imageH = 200;
+color ghost = color(0, 255, 0, 100);
+color white = color(255);
 PFont f;
 
 void setup() {
+  background(0);
   smooth();
   f = loadFont( "Inconsolata-Regular-14.vlw" );
   textFont(f);
-  model = loadImage("model.jpg");
   sample = loadImage("sample.jpg");
-  sample1 = loadImage("sample1.jpg");
+  model1 = loadImage("model1.jpg");
+  model2 = loadImage("model2.jpg");
   size(sample.width * 3, sample.height*2);
   sample.filter(THRESHOLD);
-  sample1.filter(THRESHOLD);
-  model.filter(THRESHOLD);
+  model1.filter(THRESHOLD);
+  model2.filter(THRESHOLD);
   sampleWhitePix = new ArrayList<PVector>();  // Create an empty ArrayList
-  sample1WhitePix = new ArrayList<PVector>();
-  modelWhitePix = new ArrayList<PVector>();
-  image(sample, 0, 0);
-  image(model, 180, 0);
-  tint(255, 50);  // Display at half opacity
-  image(sample, 180, 0);
-  fill(0);
-  rect(180*2,0,180,200);
-  
-  pushMatrix();
-  translate(0, 200);
-  image(sample1, 0, 0);
-  image(model, 180, 0);
-  tint(255, 50);  // Display at half opacity
-  image(sample1, 180, 0);
-  fill(0);
-  rect(180*2,0,180,200);
-  
-  popMatrix()
+  model1WhitePix = new ArrayList<PVector>();
+  model2WhitePix = new ArrayList<PVector>();
   
   // we store the white pixels in a new array
-  
   storeWhitePixels(sample, sampleWhitePix);
-  storeWhitePixels(sample1, sample1WhitePix);
-  storeWhitePixels(model, modelWhitePix);
-  
+  storeWhitePixels(model1, model1WhitePix);
+  storeWhitePixels(model2, model2WhitePix);
+  //image(sample, 0, 0);
+  displayPixels(sampleWhitePix, 0, 0, white);
+  displayPixels(model1WhitePix, 1, 0, white);
+  displayPixels(sampleWhitePix, 1, 0, ghost);
+
+  displayPixels(sampleWhitePix, 0, 1, white);
+  displayPixels(model2WhitePix, 1, 1, white);
+  displayPixels(sampleWhitePix, 1, 1, ghost);
+
   println("sample: " + sampleWhitePix.size());
-  println("model: " + modelWhitePix.size());
-  PVector closest = new PVector(0, 0);
+  println("model: " + model1WhitePix.size());
+  float totalDist0 = nn(sampleWhitePix, model1WhitePix, 0);
+  float totalDist1 = nn(sampleWhitePix, model2WhitePix, 1);
+}
+
+void displayPixels(ArrayList<PVector> arrayModel, int posX, int posY, color c){
+  for (int i = 0; i < arrayModel.size(); i++){
+    PVector p = arrayModel.get(i);
+    stroke(c);
+    point(imageW*posX + p.x, imageH*posY + p.y);
+  }
+}
+
+float nn (ArrayList<PVector> arraySample, ArrayList<PVector> arrayModel, int num){
   float totalDist = 0;
-  // we calculate the nearest neighbor
-  for (int i = 0 ; i < sampleWhitePix.size() ; i++) {
+  PVector closest = new PVector(0,0);
+  for (int i = 0 ; i < arraySample.size() ; i++) {
     float dist = 100000000; // set to large number initially. no need to store.
-    PVector s = sampleWhitePix.get(i);
-    for (int j = 0 ; j < modelWhitePix.size() ; j++) {
-      PVector m = modelWhitePix.get(j);
+    PVector s = arraySample.get(i);
+    for (int j = 0 ; j < arrayModel.size() ; j++) {
+      PVector m = arrayModel.get(j);
       float thisDist = dist(s.x, s.y, m.x, m.y);
       
       if (thisDist < dist) {
@@ -63,17 +70,17 @@ void setup() {
     }
     stroke(0, 255, 0,30);
     pushMatrix();
-    translate(180*2,0);
+    translate(180*2, 200*num);
     line(s.x, s.y, closest.x, closest.y);
     popMatrix();
     totalDist += dist;
   }
-  fill(255);
-  text(totalDist, 450, 190);
-  println("totalDist: " + totalDist);
   
+  fill(255);
+  text(totalDist, 450, 190*(1+num));
+  println("totalDist: " + totalDist);
+  return totalDist;
 }
-
 
 void storeWhitePixels(PImage image, ArrayList<PVector> array){
   for (int i=0; i < 36000 ; i++){
