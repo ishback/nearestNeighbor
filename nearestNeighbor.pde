@@ -13,6 +13,7 @@ color ghost = color(0, 255, 0, 100);
 color white = color(255);
 PFont f;
 int numModels;
+int nearest;
 
 
 void setup() {
@@ -27,14 +28,12 @@ void setup() {
   modelImages = new PImage[numModels];
   models = new ArrayList<ArrayList<PVector>>();
   distances = new FloatList();
-  size(imageW * 3, imageW * numModels);
-  pushMatrix();
-  scale(0.7);
+  size(imageW * 7, imageH * 3);
   sample = loadImage("sample.jpg");
   sample.filter(THRESHOLD);
   sampleWhitePix = new ArrayList<PVector>();
   storeWhitePixels(sample, sampleWhitePix);
-
+  displayPixels(sampleWhitePix, 0, white);
   for (int i = 0; i < numModels; i++) {
     println("models/" + modelFilenames[i]);
     modelImages[i] = loadImage("models/" + modelFilenames[i]);
@@ -42,17 +41,29 @@ void setup() {
     models.add(new ArrayList<PVector>());
     storeWhitePixels(modelImages[i], models.get(i));
     
-    displayPixels(sampleWhitePix, 0, i, white);
-    displayPixels(models.get(i), 1, i, white);
-    displayPixels(sampleWhitePix, 1, i, ghost);
-    distances.append(nn(sampleWhitePix, models.get(i), i));
+    
+    displayPixels(models.get(i), i+1, white);
+    //displayPixels(sampleWhitePix, i+1, ghost);
+    distances.append(nn(sampleWhitePix, models.get(i), i+1));
+    if (distances.get(i) == distances.min()){
+      nearest = i; //this saves the index of the closest model.
+    }
   }
   println(numModels + " model Images");
-  popMatrix();
-
+  drawRectNearest();
 }
 
-void displayPixels(ArrayList<PVector> arrayModel, int posX, int posY, color c){
+void drawRectNearest(){
+  stroke(0, 255, 0);
+  noFill();
+  int posX = (nearest+1)%(width/imageW);
+  int posY = (nearest+1)/(width/imageW);
+  rect(imageW*posX, imageH*posY, imageW, imageH);
+}
+
+void displayPixels(ArrayList<PVector> arrayModel, int pos, color c){
+  int posX = pos%(width/imageW);
+  int posY = pos/(width/imageW);
   for (int i = 0; i < arrayModel.size(); i++){
     PVector p = arrayModel.get(i);
     stroke(c);
@@ -60,9 +71,11 @@ void displayPixels(ArrayList<PVector> arrayModel, int posX, int posY, color c){
   }
 }
 
-float nn (ArrayList<PVector> arraySample, ArrayList<PVector> arrayModel, int num){
+float nn (ArrayList<PVector> arraySample, ArrayList<PVector> arrayModel, int pos){
   float totalDist = 0;
   PVector closest = new PVector(0,0);
+  int posX = pos%imageW;
+  int posY = pos/imageW;
   for (int i = 0 ; i < arraySample.size() ; i++) {
     float dist = 100000000; // set to large number initially. no need to store.
     PVector s = arraySample.get(i);
@@ -75,16 +88,19 @@ float nn (ArrayList<PVector> arraySample, ArrayList<PVector> arrayModel, int num
         closest = new PVector(m.x, m.y);
       }
     }
+    
     stroke(0, 255, 0,30);
     pushMatrix();
-    translate(180*2, 200*num);
+    translate(imageW*posX, imageH*posY);
     line(s.x, s.y, closest.x, closest.y);
     popMatrix();
     totalDist += dist;
   }
-  
+  pushMatrix();
+  translate(imageW*posX + 50, imageH*posY + 190);
   fill(255);
-  text(totalDist, 450, 190*(1+num));
+  text(totalDist, 0, 0);
+  popMatrix();
   println("totalDist: " + totalDist);
   return totalDist;
 }
